@@ -277,7 +277,7 @@ void Feature_Extraction_State_0(void *handle, int * ttt_1, int * ttt_2,
 	CDC_Fill_Buffer((uint8_t *) msg, strlen(msg));
 	BSP_LED_On(LED1);
 
-	HAL_Delay(2000);
+	HAL_Delay(3000);
 
 	sprintf(msg, "\r\nEnd Motion");
 	CDC_Fill_Buffer((uint8_t *) msg, strlen(msg));
