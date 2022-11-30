@@ -1,5 +1,6 @@
 
 /**
+ * CHANGES CHANGES
  * MODIFIED BY CHARLES ZALOOM - 8/3/18
  * IMPLEMENTATION OF EMBEDDEDML IN LEARNING DEVICE ORIENTATION
  **/
@@ -71,9 +72,9 @@
 #define TRAINING_CYCLES 2000
 #define LED_BLINK_INTERVAL 200
 
-#define ANGLE_MAG_MAX_THRESHOLD 30	//	Final baseline project
-#define MAX_ROTATION_ACQUIRE_CYCLES 400	//	Final baseline project
-
+// New variables added for Final Baseline Project below
+#define ANGLE_MAG_MAX_THRESHOLD 30
+#define MAX_ROTATION_ACQUIRE_CYCLES 400
 
 //#define NOT_DEBUGGING
 
@@ -112,6 +113,28 @@ static void initializeAllSensors(void);
 
 static volatile uint8_t hasTrained = 0;
 unsigned int training_cycles = TRAINING_CYCLES;
+
+// Addition of getAngularVelocity() for Final Baseline Project
+void getAngularVelocity(void *handle_g, int *xyz) {
+	uint8_t id;
+	SensorAxes_t angular_velocity;
+	uint8_t status;
+
+	BSP_GYRO_Get_Instance(handle_g, &id);
+	BSP_GYRO_IsInitialized(handle_g, &status);
+
+	if (status == 1) {
+		if (BSP_GYRO_Get_Axes(handle_g, &angular_velocity) ==
+		COMPONENT_ERROR) {
+			angular_velocity.AXIS_X = 0;
+			angular_velocity.AXIS_Y = 0;
+			angular_velocity.AXIS_Z = 0;
+		}
+		xyz[0] = (int) angular_velocity.AXIS_X;
+		xyz[1] = (int) angular_velocity.AXIS_Y;
+		xyz[2] = (int) angular_velocity.AXIS_Z;
+	}
+}
 
 void stable_softmax(float *x, float *y) {
 	int size = 3;
@@ -208,29 +231,6 @@ void LED_Notification_Blink(int count) {
 	}
 }
 
-
-//	Final baseline project
-void getAngularVelocity(void *handle_g, int *xyz) {
-	uint8_t id;
-	SensorAxes_t angular_velocity;
-	uint8_t status;
-
-	BSP_GYRO_Get_Instance(handle_g, &id);
-	BSP_GYRO_IsInitialized(handle_g, &status);
-
-	if(status == 1) {
-		if(BSP_GYRO_Get_Axes(handle_g, &angular_velocity) ==
-				COMPONENT_ERROR) {
-			angular_velocity.AXIS_X = 0;
-			angular_velocity.AXIS_Y = 0;
-			angular_velocity.AXIS_Z = 0;
-		}
-		xyz[0] = (int) angular_velocity.AXIS_X;
-		xyz[1] = (int) angular_velocity.AXIS_Y;
-		xyz[2] = (int) angular_velocity.AXIS_Z;
-	}
-}
-
 void getAccel(void *handle, int *xyz) {
 	uint8_t id;
 	SensorAxes_t acceleration;
@@ -277,6 +277,7 @@ void Feature_Extraction_State_0(void *handle, int * ttt_1, int * ttt_2,
 	CDC_Fill_Buffer((uint8_t *) msg, strlen(msg));
 	BSP_LED_On(LED1);
 
+	// Delay given for user to perform first movement of pen stroke
 	HAL_Delay(3000);
 
 	sprintf(msg, "\r\nEnd Motion");
@@ -306,9 +307,65 @@ void Feature_Extraction_State_0(void *handle, int * ttt_1, int * ttt_2,
  * the action of Feature_Extraction_State_0().
  */
 
-//	Feature Extraction State 1
+// Modifying Feature_Extraction_State_1() for Final Baseline Project
+
+/*
+void Feature_Extraction_State_1(void *handle, int * ttt_1, int * ttt_2,
+		int * ttt_3, int * ttt_mag_scale) {
+	int ttt[3];
+	char msg1[128];
+
+	/*
+	 * Notify user to initiate second motion to rotate vertical up or down
+	 *
+
+	LED_Notification_Blink(12);
+
+	sprintf(msg1, "\r\nNow Rotate to Z-Axis Level when LED On");
+	CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
+	BSP_LED_On(LED1);
+	HAL_Delay(3000);
+
+
+	/*
+	 * Retain initial values of acceleration for X and Y axes
+	 */
+
+	/*
+	 * Detect SensorTile in inverted position
+	 *
+	 * Compute new feature according to value of Z-axis acceleration
+	 * and orientation
+	 *
+	 * X and Y axis accelerations remain unchanged.  However, Z axis
+	 * acceleration is assigned either to the average of X and Y
+	 * axis acceleration or to zero.
+	 *
+
+	getAccel(handle, ttt);
+
+	int xymag = sqrt((ttt[0] * ttt[0]) + (ttt[1] * ttt[1]));
+
+	if (xymag > Z_ACCEL_THRESHOLD){
+		*ttt_3 = (*ttt_1 + *ttt_2)/2;
+	} else {
+		*ttt_3 = 0;
+	}
+
+	BSP_LED_Off(LED1);
+	return;
+
+	sprintf(msg1, "\r\nMotion Complete, Now Return to Next Start Position");
+	CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
+	HAL_Delay(2000);
+	return;
+
+}
+*/
+
 void Feature_Extraction_State_1(void *handle_g, int * ttt_1, int * ttt_2,
 		int * ttt_3, int * ttt_mag_scale) {
+
 	int ttt[3], ttt_state_0[3], ttt_initial[3], ttt_offset[3];
 	char msg1[128];
 	int axis_index, sample_index;
@@ -317,129 +374,193 @@ void Feature_Extraction_State_1(void *handle_g, int * ttt_1, int * ttt_2,
 	float Tsample;
 
 	/*
-	 * Assign initial values provided by execution of State 0 in ttt_1 and ttt_2
-	 */
-
+	* Assign the initial values provided by execution of State 0 in
+	* ttt_1 and ttt_2
+	*/
 	ttt_state_0[0] = *ttt_1;
 	ttt_state_0[1] = *ttt_2;
 
 	angle_mag_max_threshold = ANGLE_MAG_MAX_THRESHOLD;
 
 	/*
-	 * Compute sample period with scaling from ms to s
-	 */
+	* Compute sample period with scaling from milliseconds
+	* to seconds
+	*/
 
-	Tsample = (float) (DATA_PERIOD_MS) / 1000;
+	Tsample = (float)(DATA_PERIOD_MS)/1000;
 
-	/*
-	 * Initialize rotation angle values
-	 */
+   /*
+	* Initialize rotation angle values
+	*/
 
-	for(axis_index = 0; axis_index < 3; axis_index++) {
+	for (axis_index = 0; axis_index < 3; axis_index++) {
 		ttt[axis_index] = 0;
 		rotate_angle[axis_index] = 0;
 	}
 
 	/*
-	 * Rotation rate signal integration loop
-	 */
+	* Rotation Rate Signal integration loop
+	*
+	* Note that loop cycle time is DATA_PERIOD_MS matching the SensorTile
+	* sensor sampling period
+	*
+	* Permit integration loop to operate no longer than a maximum
+	* number of cycles, MAX_ROTATION_ACQUIRE_CYCLES. Note: This sets
+	* maximum acquisition time to be MAX_ROTATION_ACQUIRE_CYCLES*Tsample
+	*
+	* For 4 second delay, apply MAX_ROTATION_ACQUIRE_CYCLES 400
+	*
+	*/
+	/*
+	* Acquire Rotation Rate values prior to motion
+	*
+	* This includes the initial sensor offset value to be subtracted
+	* from all subsequent samples
+	*/
 
 	getAngularVelocity(handle_g, ttt_offset);
 
 	/*
-	 * Notify user to begin motion
+	 * Notify user to initiate motion
 	 */
 
 	sprintf(msg1, "\r\nStart Second State Motion to New Orientation when LED On");
-
 	CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
 	BSP_LED_On(LED1);
 
 	for(sample_index = 0; sample_index < MAX_ROTATION_ACQUIRE_CYCLES; sample_index++) {
 
 		/*
-		 * Acquire initial sample value of rotation rate, remove offset value
-		 */
+		* Acquire initial sample value of rotation rate and remove
+		* offset value
+		*/
 
 		for(axis_index = 0; axis_index < 3; axis_index++) {
 			ttt_initial[axis_index] = ttt[axis_index] - ttt_offset[axis_index];
 		}
-
 		/*
-		 * Introduce integration time period delay
-		 */
+		* Introduce integration time period delay
+		*/
 		HAL_Delay(DATA_PERIOD_MS);
 
 		/*
-		 * Acquire current sample value of rotation rate and
-		 * remove offset value
-		 */
+		* Acquire current sample value of rotation rate and remove
+		* offset value
+		*/
 
 		getAngularVelocity(handle_g, ttt);
-		for(axis_index = 0; axis_index < 3; axis_index++) {
+		for(axis_index = 0; axis_index < 3; axis_index++){
 			ttt[axis_index] = ttt[axis_index] - ttt_offset[axis_index];
 		}
 
-		//	SKIPPING SUPPRESSION OF Z_AXIS ROTATION
+		/*
+		* Suppress value of Z-Axis rotation signals
+		*/
+
+		ttt_initial[2] = 0;
+		ttt[2] = 0;
 
 		/*
-		 * Compute rotation angles by integration
-		 */
+		* Compute rotation angles by integration
+		*/
 
-		for(axis_index = 0; axis_index < 3; axis_index++) {
-			rotate_angle[axis_index] = rotate_angle[axis_index]
-					+ (float)((ttt_initial[axis_index] + ttt[axis_index]) * Tsample / 2);
+		for(axis_index = 0; axis_index < 3; axis_index++){
+			rotate_angle[axis_index] = rotate_angle[axis_index] + (float)((ttt_initial[axis_index] + ttt[axis_index]) * Tsample / 2);
 		}
 
 		/*
-		 * Compute magnitude of rotation angle summing over X, Y, Z rotation rates
-		 *
-		 * Convert from milli-degrees to degrees
-		 */
+		*
+		*
+		* Compute magnitude of rotational angle summing over X and Y
+		* axis Rotation Rates.
+		*
+		* Convert from milli-degrees to degrees (Note that Rotation
+		* Rate is sampled in milli-degrees per second).
+		*
+		*/
 
 		angle_mag = 0;
-		for(axis_index = 0; axis_index < 3; axis_index++) {
+		for(axis_index = 0; axis_index < 3; axis_index++){
 			angle_mag = angle_mag + pow((rotate_angle[axis_index]), 2);
 		}
 
-		angle_mag = sqrt(angle_mag) / 1000;
+		/*
+		* Compute angle magnitude and convert from milli-degrees to
+		* degrees
+		*/
+
+		angle_mag = sqrt(angle_mag)/1000;
 
 		/*
-		 * Compute rotation angle magnitude
-		 */
+		* Compute rotation angle magnitude
+		*/
 
-		if(angle_mag >= angle_mag_max_threshold) {
+		if(angle_mag >= angle_mag_max_threshold){
 			break;
 		}
 
 	}
 
 	/*
-	 * The loop exits if:
-	 * 1. SensorTile hasn't been moved over a time period
-	 * 2. SensorTile has been moved an angle at or greater than angle_mag_max_threshold
-	 */
+	* The loop above will exit under two conditions:
+	*
+	* 1) The SensorTile has not been moved over a period determined by
+	* MAX_ROTATION_ACQUIRE_CYCLES. Each loop cycle requires 10 milliseconds
+	* set by the integration interval of DATA_PERIOD_MS. Thus, this is a
+	* period of 4 seconds
+	* 2) The SensorTile has been moved to introduce an orientation angle
+	* change of greater than or equal to angle_mag_max_threshold.
+	*
+	* Thus, this system detects whether in State 1, there is a change
+	* in orientation after State 0 or there is no change in orientation.
+	*
+	* Assignment of features including for the third feature, *ttt_3.
+	*
+	* Consider a method similar to that of the Project of Tutorial 12
+	*
+	* Specifically, if angle_mag is greater than or equal to a threshold value
+	* then *ttt_3 is sent to the average of *ttt_1 and *ttt_2
+	*
+	* And if angle_mag is less than a threshold value, then *ttt_3 is set
+	* to zero
+	*
+	* Please also note that the loop above exits when angle_mag is equal to
+	* angle_mag_max_threshold. Therefore, angle_mag will not exceed this
+	* value. So, the threshold value for setting *ttt_3 should be chosen
+	* to be just less than angle_mag_max_threshold. Consider why this is
+	* required.
+	*/
+	/*
+	* **************************************************
+	* In the section below, replace the statement, *ttt_3 = 0; with a code
+	* segment including the conditional described in the comment above
+	*/
 
-	if(angle_mag >= angle_mag_max_threshold) {
+	if(angle_mag >= angle_mag_max_threshold){
 		*ttt_3 = (*ttt_1 + *ttt_2) / 2;
-	} else {
+	}
+	else{
 		*ttt_3 = 0;
 	}
 
-	*ttt_mag_scale = (int) (angle_mag * 100);
+	/*
+	* ***************************************************
+	*/
 
-	sprintf(msg1, " \r\n");
+	*ttt_mag_scale = (int)(angle_mag * 100);
 
-	CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
+	sprintf(msg1, "\r\n");
+	CDC_Fill_Buffer((uint8_t*) msg1, strlen(msg1));
 
-	sprintf(msg1, "\r\nMotion with Angle Mag of %i degrees complete, Now Return to Next Start Position, ",
-			(int)(angle_mag));
+	sprintf(msg1, "\r\nMotion with Angle Mag of %i degrees complete, Now Return to Next Start Position, ", (int)(angle_mag));
 	CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
 	BSP_LED_Off(LED1);
 	HAL_Delay(3000);
 	return;
 
 }
+
+
 
 void printOutput_ANN(ANN *net, int input_state, int * error) {
 
@@ -544,6 +665,7 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 	uint8_t status, status_g;
 	float training_data[6][3];
 	float training_dataset[6][8][3];
+	int ttt_initial_max[3];
 	float XYZ[3];
 	float xyz[3];
 	float test_NN[3];
@@ -551,11 +673,15 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 	int num_train_data_cycles;
 	int i, j, k, m, n, r, error, net_error;
 	int ttt_1, ttt_2, ttt_3, ttt_mag_scale;
+
 	BSP_ACCELERO_Get_Instance(handle, &id);
 	BSP_ACCELERO_IsInitialized(handle, &status);
 
 	BSP_GYRO_Get_Instance(handle_g, &id_g);
 	BSP_GYRO_IsInitialized(handle_g, &status_g);
+
+
+
 
 	if (status == 1) {
 		if (BSP_ACCELERO_Get_Axes(handle, &acceleration) == COMPONENT_ERROR) {
@@ -563,7 +689,8 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 			acceleration.AXIS_Y = 0;
 			acceleration.AXIS_Z = 0;
 		}
-		if (status == 1 && status_g == 1) {
+
+		if(status == 1 && status_g == 1){
 			if(BSP_GYRO_Get_Axes(handle_g, &angular_velocity) == COMPONENT_ERROR) {
 				angular_velocity.AXIS_X = 0;
 				angular_velocity.AXIS_Y = 0;
@@ -601,6 +728,9 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 
 				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
 								&ttt_mag_scale);
+				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
+												&ttt_mag_scale);
+
 
 				break;
 
@@ -612,6 +742,8 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 				Feature_Extraction_State_0(handle, &ttt_1, &ttt_2, &ttt_3,
 						&ttt_mag_scale);
 
+				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
+								&ttt_mag_scale);
 				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
 												&ttt_mag_scale);
 
@@ -625,7 +757,9 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 						&ttt_mag_scale);
 
 				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
+								&ttt_mag_scale);
+				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
+												&ttt_mag_scale);
 
 				break;
 
@@ -637,7 +771,9 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 						&ttt_mag_scale);
 
 				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
+								&ttt_mag_scale);
+				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
+												&ttt_mag_scale);
 
 				break;
 
@@ -649,7 +785,9 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 						&ttt_mag_scale);
 
 				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
+								&ttt_mag_scale);
+				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
+												&ttt_mag_scale);
 
 				break;
 
@@ -661,7 +799,9 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 						&ttt_mag_scale);
 
 				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
-						&ttt_mag_scale);
+								&ttt_mag_scale);
+				Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
+												&ttt_mag_scale);
 
 				break;
 
@@ -792,8 +932,6 @@ void TrainOrientation(void *handle, void *handle_g, ANN *net) {
 
 	sprintf(msg1, "\r\n\r\nTraining Complete, Now Start Test Motions\r\n");
 	CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-
-
 	return;
 }
 
@@ -809,6 +947,7 @@ int Accel_Gyro_Sensor_Handler(void *handle, void *handle_g, ANN *net, int prev_l
 	int i, j, k, loc;
 	int ttt_1, ttt_2, ttt_3, ttt_mag_scale;
 	char msg1[128];
+	int ttt_initial_max[3];
 
 
 	BSP_ACCELERO_Get_Instance(handle, &id);
@@ -819,8 +958,9 @@ int Accel_Gyro_Sensor_Handler(void *handle, void *handle_g, ANN *net, int prev_l
 
 	BSP_GYRO_IsInitialized(handle_g, &status_g);
 
-	if (status == 1) {
-		if (BSP_ACCELERO_Get_Axes(handle, &acceleration) == COMPONENT_ERROR) {
+	// NN execution and prediction cycles below
+	if (status == 1 && status_g == 1) {
+		if (BSP_GYRO_Get_Axes(handle_g, &angular_velocity) == COMPONENT_ERROR) {
 			acceleration.AXIS_X = 0;
 			acceleration.AXIS_Y = 0;
 			acceleration.AXIS_Z = 0;
@@ -846,6 +986,10 @@ int Accel_Gyro_Sensor_Handler(void *handle, void *handle_g, ANN *net, int prev_l
 
 			Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
 					&ttt_mag_scale);
+
+			Feature_Extraction_State_1(handle_g, &ttt_1, &ttt_2, &ttt_3,
+								&ttt_mag_scale);
+
 
             XYZ[0] = (float) ttt_1;
             XYZ[1] = (float) ttt_2;
@@ -1062,7 +1206,7 @@ int main(void) {
 			if (hasTrained){
 				loc = Accel_Gyro_Sensor_Handler(LSM6DSM_X_0_handle, LSM6DSM_G_0_handle, &net, loc);
 				/*
-				 * Upon return from Accel_Sensor_Handler, initiate retraining.
+				 * Upon return from Accel_Gyro_Sensor_Handler, initiate retraining.
 				 */
 				hasTrained = 0;
 				sprintf(msg2, "\n\r\n\rDouble Tap to start a new training session");
