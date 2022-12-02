@@ -318,6 +318,7 @@ void Feature_Extraction_State_1(void *handle_g, int * ttt_1, int * ttt_2,
 	*/
 	ttt_state_0[0] = *ttt_1;
 	ttt_state_0[1] = *ttt_2;
+	ttt_state_0[2] = *ttt_3;
 
 	angle_mag_max_threshold = ANGLE_MAG_MAX_THRESHOLD;
 
@@ -396,8 +397,8 @@ void Feature_Extraction_State_1(void *handle_g, int * ttt_1, int * ttt_2,
 		* Suppress value of Z-Axis rotation signals
 		*/
 
-		ttt_initial[2] = 0;
-		ttt[2] = 0;
+		//	ttt_initial[2] = 0;
+		//	ttt[2] = 0;
 
 		/*
 		* Compute rotation angles by integration
@@ -515,6 +516,7 @@ void Feature_Extraction_State_2(void *handle_g, int * ttt_1, int * ttt_2,
 	*/
 	ttt_state_0[0] = *ttt_1;
 	ttt_state_0[1] = *ttt_2;
+	ttt_state_0[2] = *ttt_3;
 
 	angle_mag_max_threshold = ANGLE_MAG_MAX_THRESHOLD;
 
@@ -593,8 +595,8 @@ void Feature_Extraction_State_2(void *handle_g, int * ttt_1, int * ttt_2,
 		* Suppress value of Z-Axis rotation signals
 		*/
 
-		ttt_initial[2] = 0;
-		ttt[2] = 0;
+		// ttt_initial[2] = 0;
+		// ttt[2] = 0;
 
 		/*
 		* Compute rotation angles by integration
