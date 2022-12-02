@@ -302,67 +302,6 @@ void Feature_Extraction_State_0(void *handle, int * ttt_1, int * ttt_2,
 	return;
 }
 
-/*
- * Feature_Extraction_State_1() determines a second orientation after
- * the action of Feature_Extraction_State_0().
- */
-
-// Modifying Feature_Extraction_State_1() for Final Baseline Project
-
-/*
-void Feature_Extraction_State_1(void *handle, int * ttt_1, int * ttt_2,
-		int * ttt_3, int * ttt_mag_scale) {
-	int ttt[3];
-	char msg1[128];
-
-	/*
-	 * Notify user to initiate second motion to rotate vertical up or down
-	 *
-
-	LED_Notification_Blink(12);
-
-	sprintf(msg1, "\r\nNow Rotate to Z-Axis Level when LED On");
-	CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-	BSP_LED_On(LED1);
-	HAL_Delay(3000);
-
-
-	/*
-	 * Retain initial values of acceleration for X and Y axes
-	 */
-
-	/*
-	 * Detect SensorTile in inverted position
-	 *
-	 * Compute new feature according to value of Z-axis acceleration
-	 * and orientation
-	 *
-	 * X and Y axis accelerations remain unchanged.  However, Z axis
-	 * acceleration is assigned either to the average of X and Y
-	 * axis acceleration or to zero.
-	 *
-
-	getAccel(handle, ttt);
-
-	int xymag = sqrt((ttt[0] * ttt[0]) + (ttt[1] * ttt[1]));
-
-	if (xymag > Z_ACCEL_THRESHOLD){
-		*ttt_3 = (*ttt_1 + *ttt_2)/2;
-	} else {
-		*ttt_3 = 0;
-	}
-
-	BSP_LED_Off(LED1);
-	return;
-
-	sprintf(msg1, "\r\nMotion Complete, Now Return to Next Start Position");
-	CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
-	HAL_Delay(2000);
-	return;
-
-}
-*/
-
 void Feature_Extraction_State_1(void *handle_g, int * ttt_1, int * ttt_2,
 		int * ttt_3, int * ttt_mag_scale) {
 
@@ -1226,28 +1165,28 @@ int Accel_Gyro_Sensor_Handler(void *handle, void *handle_g, ANN *net, int prev_l
 
 			switch (loc) {
 			case 0:
-				sprintf(msg1, "\n\rNeural Network Classification - Motion 1");
+				sprintf(msg1, "\n\rNeural Network Classification - A");
 				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
 				break;
 			case 1:
-				sprintf(msg1, "\n\rNeural Network Classification - Motion 2");
+				sprintf(msg1, "\n\rNeural Network Classification - B");
 				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
 				break;
 			case 2:
-				sprintf(msg1, "\n\rNeural Network Classification - Motion 3");
+				sprintf(msg1, "\n\rNeural Network Classification - C");
 				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
 				break;
 			case 3:
-				sprintf(msg1, "\n\rNeural Network Classification - Motion 4");
+				sprintf(msg1, "\n\rNeural Network Classification - D");
 				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
 				break;
 			case 4:
-				sprintf(msg1, "\n\rNeural Network Classification - Motion 5");
+				sprintf(msg1, "\n\rNeural Network Classification - E");
 				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
 				break;
 			case 5:
 				sprintf(msg1,
-						"\n\rNeural Network Classification - Motion 6");
+						"\n\rNeural Network Classification - F");
 				CDC_Fill_Buffer((uint8_t *) msg1, strlen(msg1));
 				break;
 			case -1:
