@@ -73,7 +73,7 @@
 #define LED_BLINK_INTERVAL 200
 
 // New variables added for Final Baseline Project below
-#define ANGLE_MAG_MAX_THRESHOLD 25
+#define ANGLE_MAG_MAX_THRESHOLD 35
 #define MAX_ROTATION_ACQUIRE_CYCLES 400
 
 //#define NOT_DEBUGGING
